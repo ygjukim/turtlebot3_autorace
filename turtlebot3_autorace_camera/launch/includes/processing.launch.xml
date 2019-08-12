@@ -1,0 +1,36 @@
+<!-- Load full set of processing nodelets for Turtlebot3 Autoracing -->
+<launch>
+
+  <!-- Name of nodelet manager -->
+  <arg name="manager" />
+
+  <!-- Launch robustly (bonds + respawn) or not? -->
+  <arg name="respawn" default="false" />
+  <arg     if="$(arg respawn)" name="bond" value="" />
+  <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+
+  <!-- Processing modules -->
+  <arg name="rgb_processing"         default="true" />
+  <arg name="debayer_processing"     default="false" />
+  <arg name="image_compensation"     default="true"/>
+  
+  <!-- Remapping arguments -->
+  <arg name="rgb"                    default="rgb" />
+
+  <!-- RGB processing -->
+  <include if="$(arg rgb_processing)"
+           file="$(find turtlebot3_autorace_camera)/launch/includes/rgb.launch.xml">
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="respawn" value="$(arg respawn)" />
+    <arg name="rgb"     value="$(arg rgb)" />
+    <arg name="debayer_processing" value="$(arg debayer_processing)" />
+  </include>
+
+  <!-- Extrinsic image compensation processing -->
+  <include if="$(arg image_compensation)"
+           file="$(find turtlebot3_autorace_camera)/launch/includes/compensation.launch.xml">
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="respawn" value="$(arg respawn)" />
+  </include>
+
+</launch>

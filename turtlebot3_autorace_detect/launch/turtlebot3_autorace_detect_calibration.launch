@@ -1,0 +1,11 @@
+<launch>
+  <!-- launch turtlebot3_autorace_extrinsic_camera_calibration.launch before launch this file -->
+
+  <!-- detect calibration -->
+  <node pkg="turtlebot3_autorace_detect" type="detect_calibration" name="detect_calibration" output="screen">
+    <remap from="/detect/image_input" to="/camera/image_projected_compensated" />
+    <remap from="/detect/image_input/compressed" to="/camera/image_projected_compensated/compressed" />
+    <remap from="/detect/image_output" to="/detect/image_calib_extended" />
+    <remap from="/detect/image_output/compressed" to="/detect/image_calib_extended/compressed" />
+  </node>
+</launch>

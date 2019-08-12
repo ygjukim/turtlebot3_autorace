@@ -1,0 +1,7 @@
+<library path="lib/liblane_detection">
+
+  <class name="turtlebot3_autorace_detect/detect_lane" type="lane_detection::DetectLaneNodelet" base_class_type="nodelet::Nodelet">
+    <description>Nodelet to detect lanes and trajectory courses from projected images</description>
+  </class>
+
+</library>

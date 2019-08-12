@@ -1,0 +1,43 @@
+<launch>
+  <!-- launch turtlebot3_autorace_intrinsic_camera_calibration.launch in the raspberry pi before launch this file -->
+
+  <arg name="calibration_mode" default="$(env AUTO_EX_CALIB)" doc="calibration_mode type [calibration, action]"/>
+
+  <group ns="camera">
+    <!-- image brightness & contrast compensation of rectified image -->
+    <node pkg="turtlebot3_autorace_camera" type="image_compensation_node" name="image_compensation" output="screen">
+      <rosparam command="load" file="$(find turtlebot3_autorace_camera)/calibration/extrinsic_calibration/compensation.yaml" />
+      <param if="$(eval calibration_mode == 'calibration')" name="/is_extrinsic_camera_calibration_mode" value="True"/>
+      <param if="$(eval calibration_mode == 'action')" name="/is_extrinsic_camera_calibration_mode" value="False"/>
+      <param name="queue_size" value="20" />
+      <remap from="image_input" to="image_rect_color" />
+      <remap from="image_output" to="image_compensated" />
+    </node>
+
+    <!-- image ground projection -->
+<!--    
+    <node pkg="turtlebot3_autorace_camera" type="image_projection_node" name="image_projection" output="screen">
+      <rosparam command="load" file="$(find turtlebot3_autorace_camera)/calibration/extrinsic_calibration/projection.yaml" />
+      <param if="$(eval calibration_mode == 'calibration')" name="/is_extrinsic_camera_calibration_mode" value="True"/>
+      <param if="$(eval calibration_mode == 'action')" name="/is_extrinsic_camera_calibration_mode" value="False"/>    
+      <param name="queue_size" value="20" />
+      <remap from="image_input" to="image_rect_color" />
+      <remap from="image_output" to="image_projected" />
+      <remap from="image_calib" to="image_extrinsic_calib" />
+    </node>
+-->
+
+    <!-- image brightness & contrast compensation of ground-projected image -->
+<!--    
+    <node pkg="turtlebot3_autorace_camera" type="image_compensation_node" name="image_compensation_projection" output="screen">
+      <rosparam command="load" file="$(find turtlebot3_autorace_camera)/calibration/extrinsic_calibration/compensation.yaml" />
+      <param if="$(eval calibration_mode == 'calibration')" name="/is_extrinsic_camera_calibration_mode" value="True"/>
+      <param if="$(eval calibration_mode == 'action')" name="/is_extrinsic_camera_calibration_mode" value="False"/>    
+      <param name="queue_size" value="20" />
+      <remap from="image_input" to="image_projected" />
+      <remap from="image_output" to="image_projected_compensated" />
+    </node>
+-->
+
+  </group>
+</launch>

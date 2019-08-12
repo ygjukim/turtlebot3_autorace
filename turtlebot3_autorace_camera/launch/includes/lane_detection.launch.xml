@@ -1,0 +1,45 @@
+<!-- Load full set of processing nodelets for Turtlebot3 Autoracing -->
+<launch>
+
+  <!-- Name of nodelet manager -->
+  <arg name="manager" />
+
+  <!-- Launch robustly (bonds + respawn) or not? -->
+  <arg name="respawn" default="false" />
+  <arg     if="$(arg respawn)" name="bond" value="" />
+  <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+  
+  <!-- Processing modules -->
+  <arg name="image_projection"       default="true"/>
+  <arg name="image_projected_compensation"     default="true"/>
+  <arg name="lane_detection"         default="true"/>
+
+  <!-- Image ground projection -->
+  <include if="$(arg image_projection)"
+           file="$(find turtlebot3_autorace_camera)/launch/includes/projection.launch.xml">
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="respawn" value="$(arg respawn)" />
+    <arg name="input_topic" value="image_rect_color" />
+    <arg name="output_topic" value="image_projected" />
+  </include>
+
+  <!-- Extrinsic image compensation processing for projected image-->
+  <include if="$(arg image_projected_compensation)"
+           file="$(find turtlebot3_autorace_camera)/launch/includes/compensation.launch.xml">
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="respawn" value="$(arg respawn)" />
+    <arg name="node_name"  value="image_projected_compensator" />
+    <arg name="input_topic" value="image_projected" />
+    <arg name="output_topic" value="image_projected_compensated" />
+  </include>
+
+  <!-- Lane detection from projected image-->
+  <include if="$(arg lane_detection)"
+           file="$(find turtlebot3_autorace_camera)/launch/includes/detect_lane.launch.xml">
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="respawn" value="$(arg respawn)" />
+    <arg name="input_topic" value="image_projected_compensated" />
+    <arg name="output_topic" value="/detect/image_lane" />
+  </include>
+
+</launch>

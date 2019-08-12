@@ -1,0 +1,60 @@
+<launch>
+
+  <!-- "camera" should uniquely identify the device. All topics are pushed down
+       into the "camera" namespace, and it is prepended to tf frame ids. -->
+  <arg name="camera" default="camera" />
+
+  <arg name="use_gazebo" default="$(env GAZEBO_MODE)" doc="gazebo_mode type [true, false]"/>
+
+  <!-- Processing Modules -->
+  <arg name="rgb_processing"         default="true"/>
+  <arg name="image_compensation"     default="true"/>
+  <arg name="image_projection"       default="true"/>
+  <arg name="image_projected_compensation"     default="true"/>
+  <arg name="lane_detection"         default="true"/>
+
+  <!-- Arguments for remapping all device namespaces -->
+  <arg name="rgb"                    default="rgb" />
+ 
+  <!-- Disable bond topics by default -->
+  <arg name="bond" default="false" />   <!-- DEPRECATED, use respawn arg instead -->
+  <arg name="respawn" default="$(arg bond)" />
+
+  <!-- Worker threads for the nodelet manager -->
+  <arg name="num_worker_threads" default="5" />
+
+  <!-- Push down all topics/nodelets into "camera" namespace -->
+  <group ns="$(arg camera)">
+
+    <!-- GAZEBO Mode -->
+    <node if="$(arg use_gazebo)" 
+	        pkg="image_transport" type="republish" name="republish" args="raw in:=image raw out:=image_raw" />
+
+    <!-- Start nodelet manager in provided namespace -->
+    <arg name="manager" value="$(arg camera)_nodelet_manager" />
+    <arg name="debug" default="false" /> 	<!-- Run manager in GDB? -->
+    <include file="$(find turtlebot3_autorace_camera)/launch/includes/manager.launch.xml">
+      <arg name="name"                value="$(arg manager)" />
+      <arg name="debug"               value="$(arg debug)" />
+      <arg name="num_worker_threads"  value="$(arg num_worker_threads)" />
+    </include>
+    
+    <!-- Load standard constellation of processing nodelets -->
+    <include file="$(find turtlebot3_autorace_camera)/launch/includes/processing.launch.xml">
+      <arg name="manager"                         value="$(arg manager)" />
+      <arg name="rgb"                             value="$(arg rgb)" />
+      <arg name="rgb_processing"                  value="$(arg rgb_processing)" />
+      <arg name="image_compensation"              value="$(arg image_compensation)" />
+    </include>
+
+    <!-- Load nodelets for lane detction -->
+    <include file="$(find turtlebot3_autorace_camera)/launch/includes/lane_detection.launch.xml">
+      <arg name="manager"                         value="$(arg manager)" />
+      <arg name="image_projection"                value="$(arg image_projection)" />
+      <arg name="image_projected_compensation"    value="$(arg image_projected_compensation)" />
+      <arg name="lane_detection"                  value="$(arg lane_detection)" />
+    </include>
+
+  </group> <!-- camera -->
+
+</launch>

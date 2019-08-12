@@ -1,0 +1,27 @@
+<!-- Load processing nodelets for the RGB camera -->
+<launch>
+
+  <arg name="calibration_mode" default="$(env AUTO_EX_CALIB)" doc="calibration_mode type [calibration, action]"/>
+
+  <arg name="manager" />
+  <arg name="respawn" default="false" />
+  <arg     if="$(arg respawn)" name="bond" value="" />
+  <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+
+  <arg name="input_topic" default="image_rect_color" />
+  <arg name="output_topic" default="image_projected" />
+
+  <!-- image brightness & contrast compensation of rectified image -->
+  <node pkg="nodelet" type="nodelet" name="image_projector"
+        args="load turtlebot3_autorace_camera/image_projection $(arg manager) $(arg bond)"
+        respawn="$(arg respawn)">
+    <rosparam command="load" file="$(find turtlebot3_autorace_camera)/calibration/extrinsic_calibration/projection.yaml" />
+    <param if="$(eval calibration_mode == 'calibration')" name="/is_extrinsic_camera_calibration_mode" value="True"/>
+    <param if="$(eval calibration_mode == 'action')" name="/is_extrinsic_camera_calibration_mode" value="False"/>    
+    <param name="queue_size" value="20" />
+    <remap from="image_input" to="$(arg input_topic)" />
+    <remap from="image_output" to="$(arg output_topic)" />
+    <remap from="image_calib" to="image_extrinsic_calib" />
+  </node>
+
+</launch>

@@ -1,0 +1,11 @@
+<library path="lib/libimage_ext_calibration">
+
+  <class name="turtlebot3_autorace_camera/image_compensation" type="image_compensation::ImageCompensationNodelet" base_class_type="nodelet::Nodelet">
+    <description>Nodelet to extrinsically compensate a instrinsic-compensated image</description>
+  </class>
+
+  <class name="turtlebot3_autorace_camera/image_projection" type="image_projection::ImageProjectionNodelet" base_class_type="nodelet::Nodelet">
+    <description>Nodelet to generate a birdeyes view</description>
+  </class>
+
+</library>

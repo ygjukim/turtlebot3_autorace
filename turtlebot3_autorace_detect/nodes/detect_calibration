@@ -1,0 +1,128 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright 2018 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+################################################################################
+
+# Authors: Leon Jung, Gilbert, Special Thanks : Roger Sacchelli
+
+import rospy
+import numpy as np
+import cv2
+from cv_bridge import CvBridge
+from std_msgs.msg import UInt8, Float64
+from sensor_msgs.msg import Image, CompressedImage
+from dynamic_reconfigure.server import Server
+from turtlebot3_autorace_detect.cfg import DetectCalibrationParamsConfig
+
+class DetectCalibration():
+    def __init__(self):
+        self.cvBridge = CvBridge()
+
+        self.image_width = 1000
+        self.image_height = 600
+        self.counter = 1
+        self.stats = []
+
+        self.left_x = rospy.get_param("~detect/calibration/left_x", 0)
+        self.left_y = rospy.get_param("~detect/calibration/left_y", 0)
+        self.right_x = rospy.get_param("~detect/calibration/right_x", 49)
+        self.right_y = rospy.get_param("~detect/calibration/right_y", 49)
+
+        srv_detect_calibration = Server(DetectCalibrationParamsConfig, self.cbReconfigDetectCalibrationParam)
+
+        self.sub_image_type = "raw"         # you can choose image type "compressed", "raw"
+        self.pub_image_type = "raw"         # you can choose image type "compressed", "raw"
+
+        # subscribes raw image
+        self.sub_image_original = rospy.Subscriber('/detect/image_input', Image, self.cbOutputCalibValues, queue_size = 1)
+
+        # publishes copied image in raw type
+        self.pub_image_copied = rospy.Publisher('/detect/image_output', Image, queue_size = 1)
+ 
+    def cbReconfigDetectCalibrationParam(self, config, level):
+        rospy.loginfo("[Detect Calibration] Detect Calibration Parameter reconfigured to")
+        rospy.loginfo("left_x : %d, left_y : %d", config.left_x, config.left_y)
+        rospy.loginfo("right_x : %d, right_y : %d", config.right_x, config.right_y)
+
+        if (config.left_x < config.right_x and config.right_x < self.image_width):
+            self.left_x = config.left_x
+            self.right_x = config.right_x
+        if (config.left_y < config.right_y and config.right_y < self.image_height):
+            self.left_y = config.left_y
+            self.right_y = config.right_y
+
+        return config
+
+    def cbOutputCalibValues(self, image_msg):
+        # Change the frame rate by yourself. Now, it is set to 1/3 (10fps). 
+        # Unappropriate value of frame rate may cause huge delay on entire recognition process.
+        # This is up to your computer's operating power.
+        # if self.counter % 3 != 0:
+        #     self.counter += 1
+        #     return
+        # else:
+        #     self.counter = 1
+
+        if self.sub_image_type == "compressed":
+            #converting compressed image to opencv image
+            np_arr = np.fromstring(image_msg.data, np.uint8)
+            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        elif self.sub_image_type == "raw":
+            cv_image = self.cvBridge.imgmsg_to_cv2(image_msg, "bgr8")
+
+        self.image_height = cv_image.shape[0]
+        self.image_width = cv_image.shape[1]
+
+        left_x = self.left_x
+        left_y = self.left_y
+        right_x = self.right_x
+        right_y = self.right_y
+
+        # roi=cv_image[left_y:right_y,left_x:right_x]
+        # rospy.loginfo("ROI height = %d, width = %d", roi.shape[0], roi.shape[1])
+        # b,g,r,_=np.uint8(cv2.mean(roi))
+        # color=cv2.cvtColor(np.uint8([[[b,g,r]]]),cv2.COLOR_BGR2HSV)        
+        # rospy.loginfo("[Detect Calibration] Hue = %d, Saturation = %d, Lightness = %d", color[0][0][0], color[0][0][1], color[0][0][2])
+
+        # Convert BGR to HSV
+        hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+        roi=hsv_image[left_y:right_y,left_x:right_x]
+        mean, std = cv2.meanStdDev(roi)
+        if (self.counter % 10 != 0):
+            self.stats.append(np.array([mean, std]))
+            self.counter += 1
+        else:
+            vals = np.mean(self.stats, axis=0)
+            vals.astype('uint8')
+            rospy.loginfo("[Detect Calibration] Hue = %d, Saturation = %d, Lightness = %d", vals[0][0], vals[0][1], vals[0][2])
+            rospy.loginfo("[Detect Calibration] Hue SD = %d, Saturation SD = %d, Lightness SD = %d", vals[1][0], vals[1][1], vals[1][2])
+            self.stats = []
+            self.stats.append(np.array([mean, std]))
+            self.counter = 1
+
+        # Draw the windows on the copied image
+        cv2.rectangle(cv_image, (left_x, left_y), (right_x, right_y), (0, 0, 255), 2)
+
+        self.pub_image_copied.publish(self.cvBridge.cv2_to_imgmsg(cv_image, "bgr8"))
+
+    def main(self):
+        rospy.spin()
+
+if __name__ == '__main__':
+    rospy.init_node('detect_calibration')
+    node = DetectCalibration()
+    node.main()

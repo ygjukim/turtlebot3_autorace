@@ -1,0 +1,32 @@
+<!-- Load processing nodelets for the RGB camera -->
+<launch>
+
+  <arg name="calibration_mode" default="$(env AUTO_DT_CALIB)" doc="calibration_mode type [calibration, action]"/>
+
+  <arg name="manager" />
+  <arg name="respawn" default="false" />
+  <arg     if="$(arg respawn)" name="bond" value="" />
+  <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+
+  <arg name="input_topic" default="image_projected_compensated" />
+  <arg name="output_topic" default="/detect/image_lane" />
+
+  <!-- image brightness & contrast compensation of rectified image -->
+  <node pkg="nodelet" type="nodelet" name="detect_lane"
+        args="load turtlebot3_autorace_detect/detect_lane $(arg manager) $(arg bond)"
+        respawn="$(arg respawn)">
+    <rosparam command="load" file="$(find turtlebot3_autorace_detect)/param/lane/lane.yaml" />
+    <param if="$(eval calibration_mode == 'calibration')" name="/is_detection_calibration_mode" value="True"/>
+    <param if="$(eval calibration_mode == 'action')" name="/is_detection_calibration_mode" value="False"/>    
+<!--
+    <remap from="/detect/lane" to="/detect/lane2" />
+    <remap from="/detect/image_input" to="/camera/image_projected_compensated" />
+    <remap from="/detect/image_output" to="/detect/image_lane" />
+-->
+    <remap from="/detect/image_input" to="$(arg input_topic)" />
+    <remap from="/detect/image_output" to="$(arg output_topic)" />
+    <remap from="/detect/image_output_sub1" to="/detect/image_white_lane_marker" />
+    <remap from="/detect/image_output_sub2" to="/detect/image_yellow_lane_marker" />
+  </node>
+
+</launch>
